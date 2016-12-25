@@ -80,7 +80,9 @@ class AdaptivePolicy(object):
         # to find the least utilized switch.
 
         # [REPLACE WITH YOUR CODE]
-        return self.utilization.keys()[0]
+	core = min(self.utilization, key=self.utilization.get)
+	return core
+        #return self.utilization.keys()[0]
 
     def redistribute(self):
         # we're installing flows by destination, so sort by received
@@ -173,7 +175,21 @@ class StaticPolicy(object):
         #   (Hint: to find a the VLAN, use topo.getVlanCore(vlanId))
 
         # [ADD YOUR CODE HERE]
+	for edge in topo.edgeSwitches.values():
+            routingTable[edge.dpid] = []
+            for h in topo.hosts.values():
+               	# don't send edge switch's neighbors up to core
+               	if h.name in edge.neighbors:
+               	    outport = topo.ports[edge.name][h.name]
+               	else:
+               	    outport = topo.ports[edge.name][topo.getVlanCore(h.vlans[0])]
 
+               	routingTable[edge.dpid].append({
+               	    'eth_dst' : h.eth,
+               	    'output' : [outport],
+               	    'priority' : 2,
+               	    'type' : 'dst'
+               	})
         return flood.add_arpflood(routingTable, topo)
 
 class DefaultPolicy(object):
